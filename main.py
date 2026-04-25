@@ -2079,8 +2079,10 @@ def main():
             t.start()
             threads.append(t)
             time.sleep(0.05)
-        for t in threads:
-            t.join()
+        while any(t.is_alive() for t in threads):
+            if STOP_FLAG.is_set():
+                break
+            time.sleep(0.1)
         STOP_FLAG.set()
         print(Panel(
             f"{O}  LIVE  {W}» {live}\n"
