@@ -1436,6 +1436,7 @@ DOMAIN_PASSWORDS = {
     "7": "mizty123",
 }
 DOMAIN_UNLOCKED = set()
+STOP_FLAG = threading.Event()
 R = "[bold red]"
 Y = "[bold yellow]"
 G = "[bold green]"
@@ -1783,7 +1784,7 @@ def confirm_id(mail, uid, otp, data, ses, password):
         pass
 def register_account(domain_choice, name_option, gender_option):
     global live, cp
-    while True:
+    while not STOP_FLAG.is_set():
         try:
             ses = requests.Session()
             res = ses.get('https://m.facebook.com/reg/')
@@ -2052,14 +2053,35 @@ def main():
             limit = int(limit_str)
         except ValueError:
             limit = 10
+        STOP_FLAG.clear()
+        print(Panel(
+            f"{GR}  Type  {W}stop{GR}  and press Enter to stop anytime",
+            border_style="bold color(124)",
+            padding=(0, 1)
+        ))
+        def _stop_listener():
+            while not STOP_FLAG.is_set():
+                try:
+                    line = input()
+                    if line.strip().lower() == 'stop':
+                        STOP_FLAG.set()
+                        print(Panel(f"{R}  Stopping... finishing current threads.", border_style="bold red", padding=(0, 2)))
+                        break
+                except Exception:
+                    break
+        sl = threading.Thread(target=_stop_listener, daemon=True)
+        sl.start()
         threads = []
         for _ in range(limit):
-            t = threading.Thread(target=register_account, args=(domain_choice, name_option, gender_option))
+            if STOP_FLAG.is_set():
+                break
+            t = threading.Thread(target=register_account, args=(domain_choice, name_option, gender_option), daemon=True)
             t.start()
             threads.append(t)
             time.sleep(0.05)
         for t in threads:
             t.join()
+        STOP_FLAG.set()
         print(Panel(
             f"{O}  LIVE  {W}» {live}\n"
             f"{R}  DEAD  {W}» {cp}",
@@ -2068,5 +2090,6 @@ def main():
             padding=(0, 2)
         ))
         input(f"\n{GR}  Press Enter to return to menu...{W}")
+        STOP_FLAG.clear()
 if __name__ == "__main__":
     main()
