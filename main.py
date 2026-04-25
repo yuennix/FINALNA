@@ -1425,6 +1425,7 @@ faker = Faker()
 console=Console()
 live = 0
 cp = 0
+_live_lock = threading.Lock()
 
 DOMAIN_PASSWORDS = {
     "1": "jemm123",
@@ -1922,7 +1923,8 @@ def register_account(domain_choice, name_option, gender_option):
                 code = get_temp_code(email)
                 if code:
                     confirm_id(email, uid, code, fresh_data, ses, password)
-                live += 1
+                with _live_lock:
+                    live += 1
                 break
             else:
                 cp += 1
@@ -2054,6 +2056,9 @@ def main():
         except ValueError:
             limit = 10
         STOP_FLAG.clear()
+        global live, cp
+        live = 0
+        cp = 0
         print(Panel(
             f"{GR}  Type  {W}stop{GR}  and press Enter to stop anytime",
             border_style="bold color(124)",
@@ -2085,8 +2090,7 @@ def main():
             time.sleep(0.1)
         STOP_FLAG.set()
         print(Panel(
-            f"{O}  LIVE  {W}» {live}\n"
-            f"{R}  DEAD  {W}» {cp}",
+            f"{O}  LIVE  {W}» {live}",
             title=f"{R}[ DONE ]{W}",
             border_style="bold color(124)",
             padding=(0, 2)
