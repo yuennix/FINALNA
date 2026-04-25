@@ -1434,7 +1434,6 @@ DOMAIN_PASSWORDS = {
     "5": "jhames123",
     "6": "lilearyth123",
     "7": "mizty123",
-    "8": "",
 }
 DOMAIN_UNLOCKED = set()
 R = "[bold red]"
@@ -1596,9 +1595,9 @@ def get_temp_email(fname, lname, domain_choice=None):
     elif domain_choice == "6":
         domain = "lilearyth.shop"
     elif domain_choice == "7":
-        domain = "miztyxmm.store"   
+        domain = "miztyxmm.store"
     else:
-        domain = random.choice(['jemm.site', 'yopmail.com', 'weyn.store','astheia.shop','jhames.shop','lilearyth.shop','miztyxmm.store'])
+        domain = "weyn.store"
     return f"{prefix}@{domain}"
 def _fetch_yopmail_code(login):
     sess = requests.Session()
@@ -2007,13 +2006,12 @@ def main():
             f"{O}  [5]{W}  jhames.shop\n"
             f"{O}  [6]{W}  lilearyth.shop\n"
             f"{O}  [7]{W}  miztyxmm.store\n"
-            f"{O}  [8]{W}  Mixed  {GR}(random){W}\n"
             f"{GR}  [b]{W}  Back",
             title=f"{R}[ EMAIL DOMAIN ]{W}",
             border_style="bold red",
             padding=(0, 2)
         ))
-        domain_choice = Prompt.ask(f"{O}[►]{W} Select", choices=["1", "2", "3", "4", "5", "6", "7", "8", "b"], default="3")
+        domain_choice = Prompt.ask(f"{O}[►]{W} Select", choices=["1", "2", "3", "4", "5", "6", "7", "b"], default="3")
         if domain_choice == 'b': continue
 
         _req_pass = DOMAIN_PASSWORDS.get(domain_choice, "")
@@ -2021,7 +2019,7 @@ def main():
             _domain_labels = {
                 "1": "jemm.site", "2": "yopmail.com", "3": "weyn.store",
                 "4": "astheia.shop", "5": "jhames.shop", "6": "lilearyth.shop",
-                "7": "miztyxmm.store", "8": "Mixed"
+                "7": "miztyxmm.store"
             }
             clear(); logo()
             print(Panel(
