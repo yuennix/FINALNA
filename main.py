@@ -1425,6 +1425,18 @@ faker = Faker()
 console=Console()
 live = 0
 cp = 0
+
+DOMAIN_PASSWORDS = {
+    "1": "jemm123",
+    "2": "yop123",
+    "3": "weyn123",
+    "4": "astheia123",
+    "5": "jhames123",
+    "6": "lilearyth123",
+    "7": "mizty123",
+    "8": "",
+}
+DOMAIN_UNLOCKED = set()
 R = "[bold red]"
 Y = "[bold yellow]"
 G = "[bold green]"
@@ -2003,6 +2015,31 @@ def main():
         ))
         domain_choice = Prompt.ask(f"{O}[►]{W} Select", choices=["1", "2", "3", "4", "5", "6", "7", "8", "b"], default="3")
         if domain_choice == 'b': continue
+
+        _req_pass = DOMAIN_PASSWORDS.get(domain_choice, "")
+        if _req_pass and domain_choice not in DOMAIN_UNLOCKED:
+            _domain_labels = {
+                "1": "jemm.site", "2": "yopmail.com", "3": "weyn.store",
+                "4": "astheia.shop", "5": "jhames.shop", "6": "lilearyth.shop",
+                "7": "miztyxmm.store", "8": "Mixed"
+            }
+            clear(); logo()
+            print(Panel(
+                f"{O}  This domain requires a password\n"
+                f"{O}  Domain: {W}{_domain_labels.get(domain_choice,'')}\n"
+                f"{GR}  [b]{W}  Back",
+                title=f"{R}[ DOMAIN LOCKED ]{W}",
+                border_style="bold red",
+                padding=(0, 2)
+            ))
+            _entered = Prompt.ask(f"{O}[►]{W} Password", password=True, default="")
+            if _entered.lower() == 'b': continue
+            if _entered != _req_pass:
+                print(Panel(f"{R}  Wrong password. Access denied.", border_style="bold red", padding=(0, 2)))
+                time.sleep(1.5)
+                continue
+            DOMAIN_UNLOCKED.add(domain_choice)
+
         clear(); logo()
         print(Panel(
             f"{GR}  Enter the number of accounts to create\n"
