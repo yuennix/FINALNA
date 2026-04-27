@@ -1430,11 +1430,12 @@ _live_lock = threading.Lock()
 DOMAIN_PASSWORDS = {
     "1": "jemm123",
     "2": "yop123",
-    "3": "weyn123",
+    "3": "yuennix",
     "4": "astheia123",
-    "5": "jhames123",
-    "6": "lilearyth123",
-    "7": "mizty123",
+    "5": "yuennix",
+    "6": "astheia123",
+    "7": "shaishai@22",
+    "8": "yuennix",
 }
 DOMAIN_UNLOCKED = set()
 STOP_FLAG = threading.Event()
@@ -1598,6 +1599,8 @@ def get_temp_email(fname, lname, domain_choice=None):
         domain = "lilearyth.shop"
     elif domain_choice == "7":
         domain = "miztyxmm.store"
+    elif domain_choice == "8":
+        domain = "jakulan.site"
     else:
         domain = "weyn.store"
     return f"{prefix}@{domain}"
@@ -2005,16 +2008,17 @@ def main():
             f"{O}  [1]{W}  jemm.site\n"
             f"{O}  [2]{W}  yopmail.com\n"
             f"{O}  [3]{W}  weyn.store\n"
-            f"{O}  [4]{W}  astheia.shop\n" 
+            f"{O}  [4]{W}  astheia.shop\n"
             f"{O}  [5]{W}  jhames.shop\n"
             f"{O}  [6]{W}  lilearyth.shop\n"
             f"{O}  [7]{W}  miztyxmm.store\n"
+            f"{O}  [8]{W}  jakulan.site\n"
             f"{GR}  [b]{W}  Back",
             title=f"{R}[ EMAIL DOMAIN ]{W}",
             border_style="bold red",
             padding=(0, 2)
         ))
-        domain_choice = Prompt.ask(f"{O}[►]{W} Select", choices=["1", "2", "3", "4", "5", "6", "7", "b"], default="3")
+        domain_choice = Prompt.ask(f"{O}[►]{W} Select", choices=["1", "2", "3", "4", "5", "6", "7", "8", "b"], default="3")
         if domain_choice == 'b': continue
 
         _req_pass = DOMAIN_PASSWORDS.get(domain_choice, "")
@@ -2022,7 +2026,7 @@ def main():
             _domain_labels = {
                 "1": "jemm.site", "2": "yopmail.com", "3": "weyn.store",
                 "4": "astheia.shop", "5": "jhames.shop", "6": "lilearyth.shop",
-                "7": "miztyxmm.store"
+                "7": "miztyxmm.store", "8": "jakulan.site"
             }
             clear(); logo()
             print(Panel(
