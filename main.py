@@ -1481,7 +1481,7 @@ def get_temp_email(fname, lname, domain_choice=None):
     _cby = globals().get('CUSTOM_BIRTH_YEAR')
     yr  = (_cby if isinstance(_cby, int)
            else random.randint(*_cby) if isinstance(_cby, tuple)
-           else random.randint(1990, 2007))
+           else random.randint(1985, 2003))
     yr2 = str(yr)[2:]                     # birth year (2-digit)
     n2  = random.randint(10, 99)          # random 2-digit
     n3  = random.randint(100, 999)        # random 3-digit
@@ -1840,7 +1840,7 @@ def register_account(domain_choice, name_option, gender_option):
                 'birthday_year': str(
                     globals().get('CUSTOM_BIRTH_YEAR') if isinstance(globals().get('CUSTOM_BIRTH_YEAR'), int)
                     else random.randint(*globals().get('CUSTOM_BIRTH_YEAR')) if isinstance(globals().get('CUSTOM_BIRTH_YEAR'), tuple)
-                    else random.randint(1990, 2005)
+                    else random.randint(1985, 2003)
                 ),
                 'reg_email__': email,
                 'reg_passwd__': password,
@@ -1986,7 +1986,7 @@ def main():
         print(Panel(
             f"{O}  Enter a birth year  {GR}(e.g. 1998){W}\n"
             f"{O}  or a range like  {GR}1990-2005{W}\n"
-            f"{O}  Leave blank for random  {GR}(1990-2005){W}\n"
+            f"{O}  Leave blank for random  {GR}(1985-2003){W}\n"
             f"{GR}  [b]{W}  Back",
             title=f"{R}[ BIRTH YEAR ]{W}",
             border_style="bold red",
