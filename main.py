@@ -1633,30 +1633,71 @@ def get_temp_code(email):
     sess = requests.Session()
     headers = {
         "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-        "accept": "text/html,*/*;q=0.9",
+        "accept": "text/html,application/json,*/*;q=0.9",
         "accept-language": "en-US,en;q=0.9",
+        "referer": f"https://{domain}/",
     }
+    full_email = f"{login}@{domain}"
+    endpoint_templates = [
+        f"https://{domain}/inbox/{login}",
+        f"https://{domain}/inbox/{full_email}",
+        f"https://{domain}/mail/{login}",
+        f"https://{domain}/mail/{full_email}",
+        f"https://{domain}/api/v1/inbox/{login}",
+        f"https://{domain}/api/v1/inbox/{full_email}",
+        f"https://{domain}/api/messages/{login}",
+        f"https://{domain}/api/messages/{full_email}",
+        f"https://{domain}/api/inbox/{login}",
+        f"https://{domain}/api/inbox/{full_email}",
+        f"https://{domain}/messages/{login}",
+        f"https://{domain}/messages/{full_email}",
+        f"https://{domain}/rss/{login}",
+        f"https://{domain}/rss/{full_email}",
+        f"https://{domain}/?login={login}",
+        f"https://{domain}/?email={full_email}",
+        f"https://{domain}/inbox?login={login}",
+        f"https://{domain}/inbox?email={full_email}",
+    ]
+    code_re = re.compile(r'(?<!\d)(\d{5,8})(?!\d)')
     for attempt in range(25):
         if attempt > 0:
             time.sleep(3)
-        try:
-            endpoints = [
-                f"https://{domain}/inbox/{login}",
-                f"https://{domain}/mail/{login}",
-                f"https://{domain}/api/v1/inbox/{login}",
-                f"https://{domain}/rss/{login}",
-            ]
-            for url in endpoints:
-                try:
-                    r = sess.get(url, headers=headers, timeout=10)
-                    if r.status_code == 200 and len(r.text) > 100:
-                        code = re.search(r'\b(\d{5,8})\b', r.text)
-                        if code:
-                            return code.group(1)
-                except Exception:
+        for url in endpoint_templates:
+            try:
+                r = sess.get(url, headers=headers, timeout=10)
+                if r.status_code != 200 or len(r.text) < 50:
                     continue
-        except Exception:
-            pass
+                ctype = r.headers.get('content-type', '').lower()
+                texts_to_scan = [r.text]
+                if 'json' in ctype:
+                    try:
+                        j = r.json()
+                        texts_to_scan.append(json.dumps(j))
+                        if isinstance(j, list):
+                            for item in j[:10]:
+                                if isinstance(item, dict):
+                                    mid = item.get('id') or item.get('messageId') or item.get('uid')
+                                    if mid:
+                                        for tmpl in (
+                                            f"https://{domain}/api/messages/{login}/{mid}",
+                                            f"https://{domain}/api/v1/inbox/{login}/{mid}",
+                                            f"https://{domain}/inbox/{login}/{mid}",
+                                            f"https://{domain}/message/{mid}",
+                                        ):
+                                            try:
+                                                rr = sess.get(tmpl, headers=headers, timeout=10)
+                                                if rr.status_code == 200 and len(rr.text) > 50:
+                                                    texts_to_scan.append(rr.text)
+                                            except Exception:
+                                                continue
+                    except Exception:
+                        pass
+                for blob in texts_to_scan:
+                    m = code_re.search(blob)
+                    if m:
+                        return m.group(1)
+            except Exception:
+                continue
     return None
 def get_bd_number():
     na = random.choice(['77', '78', '59'])
@@ -1691,22 +1732,63 @@ def _extract_token(patterns, text):
 def confirm_id(mail, uid, otp, data, ses, password):
     try:
         src = str(data)
+        soup = BeautifulSoup(src, 'html.parser')
+        form = None
+        for f in soup.find_all('form'):
+            act = (f.get('action') or '').lower()
+            if 'confirm' in act or 'cliff' in act:
+                form = f
+                break
+        if form is None:
+            form = soup.find('form')
+        action = (form.get('action') if form else '') or '/confirmation_cliff/'
+        if action.startswith('/'):
+            action = 'https://m.facebook.com' + action
+        elif not action.startswith('http'):
+            action = 'https://m.facebook.com/' + action
+        form_fields = {}
+        if form:
+            for inp in form.find_all('input'):
+                name = inp.get('name')
+                if not name:
+                    continue
+                form_fields[name] = inp.get('value', '')
         fb_dtsg = _extract_token([
             r'"token":"([^"]+)"',
             r'name="fb_dtsg" value="([^"]+)"',
             r'\["DTSGInitData"[^\]]*\],\{"token":"([^"]+)"',
-        ], src)
+        ], src) or form_fields.get('fb_dtsg', '')
         jazoest = _extract_token([
             r'name="jazoest" value="(\d+)"',
             r'"jazoest":"(\d+)"',
-        ], src)
+        ], src) or form_fields.get('jazoest', '')
         lsd = _extract_token([
             r'name="lsd" value="([^"]+)"',
             r'"LSD",\[\],\{"token":"([^"]+)"\}',
             r'"lsd":"([^"]+)"',
-        ], src)
+        ], src) or form_fields.get('lsd', '')
         rev = _extract_token([r'"client_revision":(\d+)', r'"server_revision":(\d+)'], src) or "1015920645"
-        url = "https://m.facebook.com/confirmation_cliff/"
+        spin_r = _extract_token([r'"__spin_r":(\d+)', r'__spin_r=(\d+)'], src) or rev
+        spin_t = _extract_token([r'"__spin_t":(\d+)', r'__spin_t=(\d+)'], src) or str(int(time.time()))
+        spin_b = _extract_token([r'"__spin_b":"([^"]+)"', r'__spin_b=([a-z]+)'], src) or "trunk"
+        hs = _extract_token([r'"haste_session":"([^"]+)"', r'"hs":"([^"]+)"'], src) or ""
+        url = action
+        code_field = None
+        for cf in ('code', 'confirmation_code', 'c'):
+            if cf in form_fields:
+                code_field = cf
+                break
+        if code_field is None:
+            code_field = 'code'
+        form_fields[code_field] = otp
+        if 'fb_dtsg' not in form_fields and fb_dtsg:
+            form_fields['fb_dtsg'] = fb_dtsg
+        if 'jazoest' not in form_fields and jazoest:
+            form_fields['jazoest'] = jazoest
+        if 'lsd' not in form_fields and lsd:
+            form_fields['lsd'] = lsd
+        if not any(k.lower().startswith('submit') for k in form_fields):
+            form_fields['submit[Confirm]'] = 'Confirm'
         params = {
             'contact': mail,
             'type': 'submit',
@@ -1715,6 +1797,7 @@ def confirm_id(mail, uid, otp, data, ses, password):
             'code': otp,
         }
         payload = {
+            **form_fields,
             'fb_dtsg': fb_dtsg,
             'jazoest': jazoest,
             'lsd': lsd,
@@ -1727,38 +1810,86 @@ def confirm_id(mail, uid, otp, data, ses, password):
             '__s': f'{random.randint(0,9)}:{random.randint(0,9)}:{random.randint(0,9)}',
             '__hsi': str(random.randint(7000000000000000000, 7999999999999999999)),
             '__comet_req': '0',
+            '__spin_r': spin_r,
+            '__spin_t': spin_t,
+            '__spin_b': spin_b,
+            '__ccg': 'EXCELLENT',
+            '__rev_': rev,
+            '__hs': hs,
+            'dpr': '2',
+            'lite_initiated': '1',
+            'fb_api_caller_class': 'RelayModern',
+            'fb_api_req_friendly_name': 'CAARegConfirmEmailMutation',
             'action': 'confirm',
+            'next': '/',
+            'nh': form_fields.get('nh', ''),
+            'contact_point': mail,
+            'medium': 'email',
         }
         post_headers = {
+            'Host': 'm.facebook.com',
             'User-Agent': FB_LITE_UA,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
             'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8',
             'Cache-Control': 'max-age=0',
+            'Connection': 'keep-alive',
             'Content-Type': 'application/x-www-form-urlencoded',
+            'DPR': '2',
             'Origin': 'https://m.facebook.com',
-            'Referer': f'https://m.facebook.com/confirmemail.php?soft=hjk',
+            'Referer': 'https://m.facebook.com/confirmemail.php?soft=hjk',
             'sec-ch-prefers-color-scheme': 'light',
             'sec-ch-ua': '"Android WebView";v="109", "Chromium";v="109", "Not_A Brand";v="24"',
+            'sec-ch-ua-full-version-list': '"Android WebView";v="109.0.5414.86", "Chromium";v="109.0.5414.86", "Not_A Brand";v="24.0.0.0"',
             'sec-ch-ua-mobile': '?1',
             'sec-ch-ua-model': '"2201117TY"',
             'sec-ch-ua-platform': '"Android"',
-            'sec-ch-ua-platform-version': '"12"',
+            'sec-ch-ua-platform-version': '"12.0.0"',
             'sec-fetch-dest': 'document',
             'sec-fetch-mode': 'navigate',
             'sec-fetch-site': 'same-origin',
             'sec-fetch-user': '?1',
             'upgrade-insecure-requests': '1',
+            'viewport-width': '980',
             'x-requested-with': 'com.facebook.lite',
             'x-fb-lsd': lsd,
+            'x-fb-friendly-name': 'CAARegConfirmEmailMutation',
+            'x-fb-connection-bandwidth': str(random.randint(2000000, 9000000)),
+            'x-fb-connection-quality': 'EXCELLENT',
+            'x-fb-connection-type': 'WIFI',
+            'x-fb-net-hni': str(random.randint(51500, 51550)),
+            'x-fb-sim-hni': str(random.randint(51500, 51550)),
+            'x-fb-http-engine': 'Liger',
+            'x-fb-client-ip': 'True',
+            'x-fb-server-cluster': 'True',
+            'x-fb-rmd': 'cached=0;state=NO_MATCH',
             'x-asbd-id': '129477',
         }
-        response = ses.post(url, params=params, data=payload, headers=post_headers, allow_redirects=True)
-        if "checkpoint" in str(response.url):
+        response = ses.post(url, params=params, data=payload, headers=post_headers, allow_redirects=True, timeout=20)
+        try:
+            ses.get(
+                'https://m.facebook.com/home.php',
+                headers={
+                    'User-Agent': FB_LITE_UA,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Referer': str(response.url),
+                    'x-requested-with': 'com.facebook.lite',
+                    'x-fb-http-engine': 'Liger',
+                    'x-fb-connection-quality': 'EXCELLENT',
+                    'x-fb-connection-type': 'WIFI',
+                    'sec-fetch-dest': 'document',
+                    'sec-fetch-mode': 'navigate',
+                    'sec-fetch-site': 'same-origin',
+                    'upgrade-insecure-requests': '1',
+                },
+                timeout=12, allow_redirects=True,
+            )
+        except Exception:
             pass
-        else:
+        if "c_user" in ses.cookies.get_dict():
             cookie = ";".join([f"{k}={v}" for k, v in ses.cookies.get_dict().items()])
-            print(Panel(f"{G}[{Y}✓{G}]{W} UID: {G}{uid}\n{G}[{Y}✓{G}]{W} PASS: {G}{password}\n{G}[{Y}✓{G}]{W} COOKIE: {G}{cookie}\n", title="SUCCESS", border_style="bold green"))
             save_result(uid, password, cookie)
     except Exception:
         pass
