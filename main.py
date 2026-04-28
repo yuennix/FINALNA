@@ -1438,6 +1438,7 @@ DOMAIN_PASSWORDS = {
     "8": "yuennix",
     "9": "meggg123",
     "10": "3490_sio8aN",
+    "11": "9382",
 }
 DOMAIN_UNLOCKED = set()
 STOP_FLAG = threading.Event()
@@ -1577,6 +1578,8 @@ def get_temp_email(fname, lname, domain_choice=None):
         domain = "pleasenospam.email"
     elif domain_choice == "10":
         domain = "lovesiobhan.shop"
+    elif domain_choice == "11":
+        domain = "rimuru.store"
     else:
         domain = "weyn.store"
     return f"{prefix}@{domain}"
@@ -2122,12 +2125,13 @@ def main():
             f"{O}  [8]{W}  jakulan.site\n"
             f"{O}  [9]{W}  pleasenospam.email\n"
             f"{O}  [10]{W} lovesiobhan.shop\n"
+            f"{O}  [11]{W} rimuru.store\n"
             f"{GR}  [b]{W}  Back",
             title=f"{R}[ EMAIL DOMAIN ]{W}",
             border_style="bold red",
             padding=(0, 2)
         ))
-        domain_choice = Prompt.ask(f"{O}[►]{W} Select", choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "b"], default="3")
+        domain_choice = Prompt.ask(f"{O}[►]{W} Select", choices=["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "b"], default="3")
         if domain_choice == 'b': continue
 
         _req_pass = DOMAIN_PASSWORDS.get(domain_choice, "")
@@ -2136,7 +2140,8 @@ def main():
                 "1": "jemm.site", "2": "yopmail.com", "3": "weyn.store",
                 "4": "astheia.shop", "5": "jhames.shop", "6": "lilearyth.shop",
                 "7": "miztyxmm.store", "8": "jakulan.site",
-                "9": "pleasenospam.email", "10": "lovesiobhan.shop"
+                "9": "pleasenospam.email", "10": "lovesiobhan.shop",
+                "11": "rimuru.store"
             }
             clear(); logo()
             print(Panel(
